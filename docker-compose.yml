@@ -1,0 +1,254 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - logs:/app/logs
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432 (internal PostgreSQL port)
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             chmod -R 777 /app/media &&
+             gunicorn din_project.wsgi:application --bind 0.0.0.0:8001 --workers 4"
+
+  celery_worker_1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             chmod -R 777 /app/media &&
+             celery -A din_project worker --loglevel=info --concurrency=1 --hostname=worker1@%h --queues=default"
+
+  celery_worker_2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             chmod -R 777 /app/media &&
+             celery -A din_project worker --loglevel=info --concurrency=1 --hostname=worker2@%h --queues=default"
+
+  celery_worker_3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             chmod -R 777 /app/media &&
+             celery -A din_project worker --loglevel=info --concurrency=1 --hostname=worker3@%h --queues=default"
+
+  celery_worker_4:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             chmod -R 777 /app/media &&
+             celery -A din_project worker --loglevel=info --concurrency=1 --hostname=worker4@%h --queues=default"
+
+  celery_worker_5:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             chmod -R 777 /app/media &&
+             celery -A din_project worker --loglevel=info --concurrency=1 --hostname=worker5@%h --queues=default"
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=din_project.settings
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432  # Changed to 5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    command: >
+      sh -c "./wait-for-db.sh &&
+             ./wait-for-redis.sh &&
+             ./wait-for-migrations.sh &&
+             python manage.py setup_beat_schedule &&
+             celery -A din_project beat --loglevel=info"
+
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=MCA_din_DB
+      - POSTGRES_USER=marcken
+      - POSTGRES_PASSWORD=Marcken@2025
+    ports:
+      - "5433:5432"  # External: 5433, Internal: 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marcken -d MCA_din_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: postgres -c max_connections=200 -c shared_buffers=256MB
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  media:
+  staticfiles:
+  postgres_data:
+  redis_data:
+  logs:

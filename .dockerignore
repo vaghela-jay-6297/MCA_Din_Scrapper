@@ -1,0 +1,33 @@
+# Ignore everything not needed for Docker context
+
+# Node/Python specific
+node_modules
+env/
+venv/
+__pycache__/
+*.py[cod]
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+
+# Build
+dist/
+build/
+coverage/
+
+# Editor settings
+.vscode
+.idea
+*.sublime-*
+
+# macOS
+.DS_Store

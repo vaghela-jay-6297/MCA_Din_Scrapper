@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-5 col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">DIN Request Form</h3>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                            <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <form method="post" action="{% url 'process_din' %}" enctype="multipart/form-data" id="din-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="input_type" class="form-label">Input Type</label>
+                        <select class="form-select" id="input_type" name="input_type" onchange="toggleInputFields()">
+                            <option value="range">Get DIN Details by Range</option>
+                            <option value="csv">Get DIN Details by CSV Files</option>
+                        </select>
+                    </div>
+                    <div id="range_inputs">
+                        <div class="mb-3">
+                            <label for="start_range" class="form-label">Start Range</label>
+                            <input type="text" class="form-control" id="start_range" name="start_range" 
+                                   pattern="[0-9]+" placeholder="e.g., 1" 
+                                   oninput="updateRangeSize()">
+                            <small class="form-text text-muted">Enter a positive integer DIN (e.g., 1).</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="end_range" class="form-label">End Range</label>
+                            <input type="text" class="form-control" id="end_range" name="end_range" 
+                                   pattern="[0-9]+" placeholder="e.g., 100" 
+                                   oninput="updateRangeSize()">
+                            <small class="form-text text-muted">Enter a positive integer DIN (e.g., 100).</small>
+                        </div>
+                        <div id="range-size-info" class="mb-3" style="display: none;">
+                            <p id="range-size-text" class="text-muted">Range Size: <span id="range-size">0</span> DINs</p>
+                        </div>
+                    </div>
+                    <div id="csv_input" style="display: none;">
+                        <div class="mb-3">
+                            <label for="input_csv" class="form-label">Upload CSV File</label>
+                            <input type="file" class="form-control" id="input_csv" name="input_csv" 
+                                   accept=".csv">
+                            <small class="form-text text-muted">CSV should contain one DIN per row, each a positive integer.</small>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">Process DIN Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7 col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">Recent Requests</h3>
+            </div>
+            <div class="card-body p-0 position-relative">
+                <div id="error-message" class="alert alert-danger text-center" style="display: none; margin: 10px;">
+                    Failed to load recent requests. Please try again later.
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table id="recent-requests-table" class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th class="col-1">ID</th>
+                                <th class="col-2">Input</th>
+                                <th class="col-1">Status</th>
+                                <th class="col-2">Progress</th>
+                                <th class="col-2">Email Status</th>
+                                <th class="col-1">Output</th>
+                                <th class="col-1">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+    .form-label {
+        font-weight: 600;
+        color: #1a3c34;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+    }
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+    .table th {
+        background-color: #f1f5f9;
+        font-weight: 600;
+        color: #1a3c34;
+    }
+    .table th, .table td {
+        vertical-align: middle;
+        text-align: center;
+        padding: 12px;
+    }
+    .table tr {
+        transition: background-color 0.3s ease;
+    }
+    .table tr:hover {
+        background-color: #e9ecef;
+    }
+    .progress {
+        height: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 5px 0;
+    }
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    .btn-sm:hover {
+        transform: scale(1.05);
+    }
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5em 0.8em;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+    .text-danger {
+        font-weight: 500;
+    }
+    @media (max-width: 768px) {
+        .table th, .table td {
+            font-size: 0.85rem;
+            padding: 8px;
+        }
+        .btn-sm {
+            font-size: 0.75rem;
+        }
+        .badge {
+            font-size: 0.75rem;
+        }
+    }
+</style>
+<script>
+function toggleInputFields() {
+    const inputType = document.getElementById('input_type').value;
+    const rangeInputs = document.getElementById('range_inputs');
+    const csvInput = document.getElementById('csv_input');
+    const startRange = document.getElementById('start_range');
+    const endRange = document.getElementById('end_range');
+    const inputCsv = document.getElementById('input_csv');
+    
+    if (inputType === 'range') {
+        rangeInputs.style.display = 'block';
+        csvInput.style.display = 'none';
+        startRange.required = true;
+        endRange.required = true;
+        inputCsv.required = false;
+        updateRangeSize();
+    } else {
+        rangeInputs.style.display = 'none';
+        csvInput.style.display = 'block';
+        startRange.required = false;
+        endRange.required = false;
+        inputCsv.required = true;
+        document.getElementById('range-size-info').style.display = 'none';
+    }
+}
+
+function updateRangeSize() {
+    const startRangeInput = document.getElementById('start_range');
+    const endRangeInput = document.getElementById('end_range');
+    const startRange = startRangeInput.value;
+    const endRange = endRangeInput.value;
+    const rangeSizeInfo = document.getElementById('range-size-info');
+    const rangeSizeText = document.getElementById('range-size');
+
+    if (/^\d+$/.test(startRange) && /^\d+$/.test(endRange)) {
+        const start = parseInt(startRange, 10);
+        const end = parseInt(endRange, 10);
+        const rangeSize = end - start + 1;
+        rangeSizeInfo.style.display = 'block';
+        rangeSizeText.textContent = rangeSize > 0 ? rangeSize : 0;
+        startRangeInput.classList.remove('is-invalid');
+        endRangeInput.classList.remove('is-invalid');
+    } else {
+        rangeSizeInfo.style.display = 'none';
+        startRangeInput.classList.remove('is-invalid');
+        endRangeInput.classList.remove('is-invalid');
+    }
+}
+
+function validateForm(event) {
+    const inputType = document.getElementById('input_type').value;
+    const startRange = document.getElementById('start_range').value;
+    const endRange = document.getElementById('end_range').value;
+    const inputCsv = document.getElementById('input_csv').files[0];
+    let isValid = true;
+
+    if (inputType === 'range') {
+        if (!startRange || !endRange) {
+            alert('Please enter both start and end range values.');
+            isValid = false;
+        } else if (!/^\d+$/.test(startRange) || !/^\d+$/.test(endRange)) {
+            alert('Both start and end ranges must be positive integers.');
+            isValid = false;
+        } else if (parseInt(startRange, 10) > parseInt(endRange, 10)) {
+            alert('Start range must be less than or equal to end range.');
+            isValid = false;
+        }
+    } else if (inputType === 'csv') {
+        if (!inputCsv) {
+            alert('Please upload a CSV file.');
+            isValid = false;
+        } else if (!inputCsv.name.endsWith('.csv')) {
+            alert('Please upload a valid CSV file.');
+            isValid = false;
+        }
+    }
+
+    if (!isValid) {
+        event.preventDefault();
+    }
+}
+
+function showErrorMessage(show) {
+    const errorMessage = document.getElementById('error-message');
+    errorMessage.style.display = show ? 'block' : 'none';
+}
+
+let isFetching = false;
+
+async function updateRecentRequests() {
+    if (isFetching) return;
+    isFetching = true;
+
+    try {
+        const response = await fetch("{% url 'get_recent_requests' %}");
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        
+        const tableBody = document.querySelector("#recent-requests-table tbody");
+        tableBody.innerHTML = "";
+        data.forEach(req => {
+            const row = document.createElement("tr");
+            
+            let progressBar = '';
+            if (req.status === 'processing') {
+                progressBar = `
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                            role="progressbar" 
+                            style="width: ${req.progress}%;" 
+                            aria-valuenow="${req.progress}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                            ${Math.round(req.progress)}%
+                        </div>
+                    </div>
+                `;
+            } else if (req.status === 'completed') {
+                progressBar = `
+                    <div class="progress">
+                        <div class="progress-bar bg-success" 
+                            role="progressbar" 
+                            style="width: 100%;" 
+                            aria-valuenow="100" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                            100%
+                        </div>
+                    </div>
+                `;
+            } else {
+                progressBar = '-';
+            }
+
+            let cancelButton = '';
+            if (req.status === 'processing' && !req.is_cancelled) {
+                cancelButton = `
+                    <form method="post" action="/cancel-din/${req.id}/" onsubmit="setTimeout(() => updateRecentRequests(), 1000);">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
+                        <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                    </form>
+                `;
+            } else {
+                cancelButton = '-';
+            }
+
+            let inputDisplay = req.input_csv ? 
+                `<a href="${req.input_csv}" download>CSV File</a>` : 
+                `${req.start_range} - ${req.end_range}`;
+
+            row.innerHTML = `
+                <td><a href="/din-status/${req.id}/" class="text-primary">${req.id}</a></td>
+                <td>${inputDisplay}</td>
+                <td>
+                    ${req.status === 'completed' ? '<span class="badge bg-success">Completed</span>' :
+                      req.status === 'processing' ? '<span class="badge bg-warning">Processing</span>' :
+                      req.status === 'pending' ? '<span class="badge bg-info">Pending</span>' :
+                      req.status === 'cancelled' ? '<span class="badge bg-secondary">Cancelled</span>' :
+                      '<span class="badge bg-danger">Failed</span>'}
+                </td>
+                <td>${progressBar}</td>
+                <td>
+                    ${req.email_status === 'sent' ? '<span class="badge bg-success">Sent</span>' :
+                      req.email_status === 'failed' ? '<span class="badge bg-danger">Failed</span>' :
+                      req.email_status === 'pending' ? '<span class="badge bg-warning">Pending</span>' :
+                      req.email_status === 'cancelled' ? '<span class="badge bg-secondary">Cancelled</span>' :
+                      '<span class="badge bg-secondary">Not Initiated</span>'}
+                </td>
+                <td>
+                    ${req.output_csv ? `<a href="${req.output_csv}" class="btn btn-sm btn-outline-primary">Download</a>` : '-'}</td>
+                <td>${cancelButton}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error fetching recent requests:', error);
+        showErrorMessage(true);
+    } finally {
+        isFetching = false;
+    }
+}
+
+updateRecentRequests();
+const intervalId = setInterval(() => updateRecentRequests(), 4000);
+
+window.addEventListener('beforeunload', () => {
+    clearInterval(intervalId);
+});
+
+toggleInputFields();
+document.getElementById('din-form').addEventListener('submit', validateForm);
+</script>
+{% endblock %}
